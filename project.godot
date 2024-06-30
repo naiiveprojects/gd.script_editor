@@ -6,15 +6,16 @@
 ;   [section] ; section goes between []
 ;   param=value ; assign values to parameters
 
-config_version=4
+config_version=5
 
 [application]
 
 config/name="NV Script Editor"
+config/features=PackedStringArray("4.2")
 
 [editor_plugins]
 
-enabled=PoolStringArray( "res://addons/nv.script_editor/plugin.cfg" )
+enabled=PackedStringArray("res://addons/nv.script_editor/plugin.cfg")
 
 [gui]
 
@@ -26,7 +27,6 @@ common/enable_pause_aware_picking=true
 
 [rendering]
 
+environment/defaults/default_clear_color=Color(0.2, 0.2, 0.2, 1)
 quality/driver/driver_name="GLES2"
 vram_compression/import_etc=true
-vram_compression/import_etc2=false
-environment/default_clear_color=Color( 0.2, 0.2, 0.2, 1 )
