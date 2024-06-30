@@ -3,20 +3,15 @@
 
 plugin to extend Script Editor features
 
-> [!WARNING]
->
-> Some features will not work on [GDX](https://github.com/naiiveprojects/gdx)
-
 ## Features
 
 - Switch Script List dock position ( using build-in `toggle script panel` button )
 - Script Tabs visibility toggle ( `Tabs` )
 - Split Mode ( `Split` )
 
+## Showcase
+
 ![showcase](/assetlib/showcase.gif)
-
-## Screenshots
-
 ![ss](/assetlib/nv_script_editor.png)
 ![ss](/assetlib/nv_script_editor_hint.png)
 
@@ -32,6 +27,10 @@ plugin to extend Script Editor features
 
 2. Move the `addons/` folder to your project folder.
 3. In the editor, open **Project > Project Settings**, go to **Plugins**, and enable the **NV Node Pivot** plugin.
+
+> [!WARNING]
+>
+> Some features will not work on [GDX](https://github.com/naiiveprojects/gdx)
 
 ## License
 
