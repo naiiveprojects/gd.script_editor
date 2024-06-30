@@ -152,3 +152,11 @@ func config_load() -> void:
 	
 	if !script_list.visible or config.docked:
 		_switch_script_list_dock()
+
+
+
+# ░░░░░░░░░░░░░░░░░░░░░░░░░░░ Title: NV Script Editor
+# ░░█▀█░█▀█░█░░░█░░░█░█░█▀▀░░ Act: Extend Script Editor Feature
+# ░░█░█░█▀█░░▀▄░░▀▄░▀▄▀░█▀▀░░ Cast[Editor, ScriptEditor]
+# ░░▀░▀░▀░▀░░░▀░░░▀░░▀░░▀▀▀░░ Writters[@illlustr,]
+# ░ Projects ░░░░░░░░░░░░░░░░ https://github.com/naiiveprojects
