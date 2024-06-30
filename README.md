@@ -37,3 +37,4 @@ plugin to extend Script Editor features
 Copyright © 2024 NAIIVE and contributors
 
 Unless otherwise specified, files in this repository are licensed under the MIT license. See [LICENSE](LICENSE) for more information.
+
