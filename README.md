@@ -1,5 +1,5 @@
 # <img src="./assetlib/icon.png" width="32" height="32"> GD Script Editor
-✅ **for Godot Engine 3.x** | ➡️ [**for Godot Engine 4.x**](https://github.com/naiiveprojects/gd.script_editor/tree/4.x)
+➡️ [**for Godot Engine 3.x**](https://github.com/naiiveprojects/gd.script_editor/tree/3.x) | ✅ **for Godot Engine 4.x**
 
 plugin to extend Script Editor features
 
