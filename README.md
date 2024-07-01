@@ -1,4 +1,4 @@
-# <img src="./assetlib/icon.png" width="32" height="32"> GD Script Editor
+# <img src="./assetlib/icon.png" width="32" height="32"> NV Script Editor **[WIP]**
 ➡️ [**for Godot Engine 3.x**](https://github.com/naiiveprojects/gd.script_editor/tree/3.x) | ✅ **for Godot Engine 4.x**
 
 plugin to extend Script Editor features
@@ -18,10 +18,10 @@ WIP
 1. Clone this Git repository:
 
 	```bash
-	git clone https://github.com/naiiveprojects/gd.script_editor.git
+	git clone https://github.com/naiiveprojects/gd.script_editor/tree/4.x.git
 	```
 
-	Alternatively, you can [download a ZIP archive](https://github.com/naiiveprojects/gd.script_editor/archive/refs/heads/3.x.zip) if you do not have Git installed.
+	Alternatively, you can [download a ZIP archive](https://github.com/naiiveprojects/gd.script_editor/archive/refs/heads/4.x.zip) if you do not have Git installed.
 
 2. Move the `addons/` folder to your project folder.
 3. In the editor, open **Project > Project Settings**, go to **Plugins**, and enable the **NV Node Pivot** plugin.
