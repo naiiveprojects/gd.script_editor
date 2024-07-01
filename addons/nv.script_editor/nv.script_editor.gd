@@ -1,62 +1,84 @@
 tool
 extends EditorPlugin
 
+enum MAIN_EDITOR { TWO, THREE, SCRIPT, ASSETLIB }
+
+const MAIN_EDITOR_NAME := [ "2D", "3D", "Script", "AssetLib" ]
 const PATH_CONFIG := "res://addons/nv.script_editor/config.cfg"
 const PATH_STAY_IN_SCRIPT := "text_editor/navigation/stay_in_script_editor_on_node_selected"
 
 var _switching: bool = false
-
 var config: Dictionary = {
 	"docked": true,
-	"tab_visible": false,
 	"split_mode": false, # share space with script editor
+	"split_main": MAIN_EDITOR.TWO, # Switch to this editor when split enable
 	"stay_in_scirpt": false, # Stay in script editor when clicking on node in tree
 }
 
-# Refrences
 var editor: EditorInterface = get_editor_interface()
 var script_editor: ScriptEditor = editor.get_script_editor()
 var script_menu: HBoxContainer = script_editor.get_child(0).get_child(0)
 var script_container: HSplitContainer = script_editor.get_child(0).get_child(1)
-var script_list: VSplitContainer = script_container.get_child(0)  # List of script & methode
-var script_tab: TabContainer = script_container.get_child(1) # TextEditor
+var script_list: VSplitContainer = script_container.get_child(0) 
+var script_tab: TabContainer = script_container.get_child(1)
+var script_list_item: ItemList = script_list.get_child(0).get_child(1)
 
 var dock := MarginContainer.new()
 var dock_tab: TabContainer = null
-
 var menu_container := HBoxContainer.new()
 var menu_split := ToolButton.new()
+var menu_split_group := ButtonGroup.new()
+var menu_split_editor := [Button.new(), Button.new()]
 var menu_tab := ToolButton.new()
 
 
 func _enter_tree() -> void:
-	var units := [dock, editor, script_editor, script_menu, script_container, script_list, script_tab]
+	var units := [
+			dock, editor, script_editor, script_menu,
+			script_container, script_list, script_tab,
+			script_list_item,
+	]
 	for u in units: if u == null:
 		printt("ERROR"," NV Script Editor", "Missing Refrences")
 		return
 	
-	editor.get_editor_settings().set(PATH_STAY_IN_SCRIPT, config.stay_in_scirpt)
+	dock.set_name(MAIN_EDITOR_NAME[MAIN_EDITOR.SCRIPT])
+	
 	script_tab.set_tab_align(TabContainer.ALIGN_LEFT)
 	script_tab.set_drag_to_rearrange_enabled(true)
 	
-	menu_split.toggle_mode = true
-	menu_split.text = "Split"
+	menu_split.set_toggle_mode(true)
+	menu_split.set_text("Split")
 	menu_split.hint_tooltip = "Split Mode.\nshare space with Script Editor "
 	menu_split.hint_tooltip += "when selecting item in script panel outside script editor"
-	menu_split.connect("pressed", self, "_editor_script_changed")
 	
-	menu_tab.toggle_mode = true
-	menu_tab.text = "Tabs"
-	menu_tab.hint_tooltip = "Show Script Editor Tabs"
-	menu_tab.connect("toggled", script_tab, "set_tabs_visible")
+	menu_tab.set_toggle_mode(true)
+	menu_tab.set_text("Tabs")
+	menu_tab.set_tooltip("Show Script Editor Tabs") 
 	
-	menu_container.add_child(menu_split)
 	menu_container.add_child(menu_tab)
+	menu_container.add_child(menu_split)
+	
+	for idx in menu_split_editor.size():
+		var tb: Button = menu_split_editor[idx]
+		if not tb is Button: return
+		tb.set_toggle_mode(true)
+		tb.set_button_group(menu_split_group)
+		tb.set_text(MAIN_EDITOR_NAME[idx])
+		tb.set_meta("editor", idx)
+		tb.set_pressed(true)
+		tb.hide()
+		tb.connect("pressed", editor, "set_main_screen_editor", [tb.get_text()])
+		menu_split.connect("toggled", tb, "set_visible")
+		menu_container.add_child(tb)
+	
 	script_menu.add_child(menu_container)
 	script_menu.move_child(menu_container, 3)
 	
-	dock.name = 'Script'
-	script_editor.connect("editor_script_changed", self, "_editor_script_changed")
+	script_list_item.connect("item_selected", self, "_editor_script_selected")
+	menu_split.connect("pressed", self, "_editor_script_selected")
+	menu_tab.connect("toggled", self, "_menu_tab_toggled")
+	script_editor.connect("editor_script_changed", self, "_connect_scripts_panel_toggle")
 	
 	config_load()
 
@@ -74,28 +96,45 @@ func _exit_tree():
 	dock.queue_free()
 
 
-func _editor_script_changed(script: Script = null) -> void:
-	if menu_split.pressed:
+func _menu_tab_toggled(active: bool = false) -> void:
+	script_tab.set_tabs_visible(active)
+	
+	if not active: return
+	
+	for idx in script_tab.get_tab_count():
+		script_tab.set_tab_title(idx, script_list_item.get_item_text(idx))
+		script_tab.set_tab_icon(idx, script_list_item.get_item_icon(idx))
+	
+	if not script_tab.is_connected("tab_changed", self, "_editor_script_selected"):
+		script_tab.connect("tab_changed", self, "_editor_script_selected")
+
+
+func _editor_script_selected(idx: int = 0) -> void:
+	if menu_split.is_pressed():
+		editor.set_main_screen_editor(menu_split_group.get_pressed_button().get_text())
 		script_editor.show()
-	elif script:
-		script_editor.show()
-		editor.edit_resource(script)
 	else:
-		editor.set_main_screen_editor("Script")
+		editor.set_main_screen_editor(MAIN_EDITOR_NAME[MAIN_EDITOR.SCRIPT])
+	
+	script_list_item.select(idx)
 	
 	if dock.is_inside_tree():
-		dock_tab.current_tab = dock.get_index()
+		dock_tab.set_current_tab(dock.get_index())
+
+
+func _connect_scripts_panel_toggle(_script: Script = null) -> void:
+	var tab: Control = script_tab.get_current_tab_control()
+	if not tab.get_child(0) is VSplitContainer: return
 	
-	_connect_toggle_scripts_panel()
-
-
-func _connect_toggle_scripts_panel() -> void:
-	var tab: Control = script_tab.get_current_tab_control().get_child(0)
-	if not tab is VSplitContainer: return
-	tab.get_parent().name = script_editor.get_current_script().resource_path.get_basename().get_file()
-	var toggle: ToolButton = tab.get_child(0).get_child(2).get_child(0)
+	var toggle: ToolButton = tab.get_child(0).get_child(0).get_child(2).get_child(0)
+	
 	if not toggle.is_connected("pressed", self, "_switch_script_list_dock"):
 		toggle.connect("pressed", self, "_switch_script_list_dock")
+	
+	if menu_tab.is_pressed():
+		var idx: int = script_tab.get_current_tab_control().get_index()
+		script_tab.set_tab_title(idx, script_list_item.get_item_text(idx))
+		script_tab.set_tab_icon(idx, script_list_item.get_item_icon(idx))
 
 
 func _switch_script_list_dock() -> void:
@@ -106,7 +145,7 @@ func _switch_script_list_dock() -> void:
 		dock_tab = dock.get_parent()
 		dock.remove_child(script_list)
 		script_container.add_child(script_list)
-		script_container.move_child(script_list, OK)
+		script_container.move_child(script_list, 0)
 		remove_control_from_docks(dock)
 	else:
 		script_container.remove_child(script_list)
@@ -117,6 +156,7 @@ func _switch_script_list_dock() -> void:
 			dock_tab = dock.get_parent()
 		else:
 			dock_tab.add_child(dock)
+		
 		dock_tab.current_tab = dock.get_index()
 	
 	yield(get_tree(), "idle_frame")
@@ -127,12 +167,11 @@ func _switch_script_list_dock() -> void:
 
 func config_save() -> void:
 	config.docked = dock.is_inside_tree()
-	config.split_mode = menu_split.pressed
-	config.tab_visible = menu_tab.pressed
+	config.split_mode = menu_split.is_pressed()
 	
 	var cfg := ConfigFile.new()
 	for item in config.keys():
-		cfg.set_value("NVSE", item, config.get(item))
+		cfg.set_value(PATH_CONFIG, item, config.get(item))
 	
 	cfg.save(PATH_CONFIG)
 
@@ -145,14 +184,12 @@ func config_load() -> void:
 		return
 	
 	for item in config.keys():
-		config[item] = cfg.get_value("NVSE", item, config.get(item))
+		config[item] = cfg.get_value(PATH_CONFIG, item, config.get(item))
 	
-	menu_split.pressed = config.split_mode
-	menu_tab.pressed = config.tab_visible
-	
-	if !script_list.visible or config.docked:
+	editor.get_editor_settings().set(PATH_STAY_IN_SCRIPT, config.stay_in_scirpt)
+	menu_split.set_pressed(config.split_mode)
+	if not script_list.is_visible() or config.docked:
 		_switch_script_list_dock()
-
 
 
 # ░░░░░░░░░░░░░░░░░░░░░░░░░░░ Title: NV Script Editor
