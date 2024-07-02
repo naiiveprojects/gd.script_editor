@@ -1,17 +1,16 @@
 tool
 extends EditorPlugin
 
-enum MAIN_EDITOR { TWO, THREE, SCRIPT, ASSETLIB }
+enum ID_MAIN_EDITOR { TWO, THREE, SCRIPT, ASSETLIB }
 
-const MAIN_EDITOR_NAME := [ "2D", "3D", "Script", "AssetLib" ]
+const MAIN_EDITOR := [ "2D", "3D", "Script", "AssetLib" ]
 const PATH_CONFIG := "res://addons/nv.script_editor/config.cfg"
 const PATH_STAY_IN_SCRIPT := "text_editor/navigation/stay_in_script_editor_on_node_selected"
 
 var _switching: bool = false
 var config: Dictionary = {
 	"docked": true,
-	"split_mode": false, # share space with script editor
-	"split_main": MAIN_EDITOR.TWO, # Switch to this editor when split enable
+	"split_main": "3D", # Switch to this editor when split enable
 	"stay_in_scirpt": false, # Stay in script editor when clicking on node in tree
 }
 
@@ -42,45 +41,15 @@ func _enter_tree() -> void:
 		printt("ERROR"," NV Script Editor", "Missing Refrences")
 		return
 	
-	dock.set_name(MAIN_EDITOR_NAME[MAIN_EDITOR.SCRIPT])
+	dock.set_name(MAIN_EDITOR[ID_MAIN_EDITOR.SCRIPT])
 	
 	script_tab.set_tab_align(TabContainer.ALIGN_LEFT)
 	script_tab.set_drag_to_rearrange_enabled(true)
 	
-	menu_split.set_toggle_mode(true)
-	menu_split.set_text("Split")
-	menu_split.hint_tooltip = "Split Mode.\nshare space with Script Editor "
-	menu_split.hint_tooltip += "when selecting item in script panel outside script editor"
-	
-	menu_tab.set_toggle_mode(true)
-	menu_tab.set_text("Tabs")
-	menu_tab.set_tooltip("Show Script Editor Tabs") 
-	
-	menu_container.add_child(menu_tab)
-	menu_container.add_child(menu_split)
-	
-	for idx in menu_split_editor.size():
-		var tb: Button = menu_split_editor[idx]
-		if not tb is Button: return
-		tb.set_toggle_mode(true)
-		tb.set_button_group(menu_split_group)
-		tb.set_text(MAIN_EDITOR_NAME[idx])
-		tb.set_meta("editor", idx)
-		tb.set_pressed(true)
-		tb.hide()
-		tb.connect("pressed", editor, "set_main_screen_editor", [tb.get_text()])
-		menu_split.connect("toggled", tb, "set_visible")
-		menu_container.add_child(tb)
-	
-	script_menu.add_child(menu_container)
-	script_menu.move_child(menu_container, 3)
-	
-	script_list_item.connect("item_selected", self, "_editor_script_selected")
-	menu_split.connect("pressed", self, "_editor_script_selected")
-	menu_tab.connect("toggled", self, "_menu_tab_toggled")
 	script_editor.connect("editor_script_changed", self, "_connect_scripts_panel_toggle")
+	script_list_item.connect("item_selected", self, "_editor_script_selected")
 	
-	config_load()
+	_create_menu()
 
 
 func _exit_tree():
@@ -110,16 +79,17 @@ func _menu_tab_toggled(active: bool = false) -> void:
 
 
 func _editor_script_selected(idx: int = 0) -> void:
-	if menu_split.is_pressed():
-		editor.set_main_screen_editor(menu_split_group.get_pressed_button().get_text())
-		script_editor.show()
-	else:
-		editor.set_main_screen_editor(MAIN_EDITOR_NAME[MAIN_EDITOR.SCRIPT])
-	
 	script_list_item.select(idx)
 	
 	if dock.is_inside_tree():
 		dock_tab.set_current_tab(dock.get_index())
+	
+	if menu_split.is_pressed():
+		yield(get_tree(), "idle_frame")
+		editor.set_main_screen_editor(menu_split_group.get_pressed_button()._get_tooltip())
+		script_editor.show()
+	else:
+		editor.set_main_screen_editor(MAIN_EDITOR[ID_MAIN_EDITOR.SCRIPT])
 
 
 func _connect_scripts_panel_toggle(_script: Script = null) -> void:
@@ -127,7 +97,6 @@ func _connect_scripts_panel_toggle(_script: Script = null) -> void:
 	if not tab.get_child(0) is VSplitContainer: return
 	
 	var toggle: ToolButton = tab.get_child(0).get_child(0).get_child(2).get_child(0)
-	
 	if not toggle.is_connected("pressed", self, "_switch_script_list_dock"):
 		toggle.connect("pressed", self, "_switch_script_list_dock")
 	
@@ -165,9 +134,45 @@ func _switch_script_list_dock() -> void:
 	_switching = false
 
 
+func _create_menu() -> void:
+	if menu_container.is_inside_tree(): return
+	menu_split.set_toggle_mode(true)
+	menu_split.set_text("Split")
+	menu_split.hint_tooltip = "Split Mode.\nshare space with Script Editor "
+	menu_split.hint_tooltip += "when selecting item in script panel outside script editor"
+	
+	menu_tab.set_toggle_mode(true)
+	menu_tab.set_text("Tabs")
+	menu_tab.set_tooltip("Show Script Editor Tabs") 
+	
+	menu_container.add_child(menu_tab)
+	menu_container.add_child(menu_split)
+	
+	for idx in menu_split_editor.size():
+		var tb: Button = menu_split_editor[idx]
+		if not tb is Button: return
+		tb.set_toggle_mode(true)
+		tb.set_button_group(menu_split_group)
+		tb.set_button_icon(script_menu.get_icon(MAIN_EDITOR[idx], "EditorIcons"))
+		tb.set_tooltip(MAIN_EDITOR[idx])
+		tb.set_pressed(true)
+		tb.hide()
+		tb.connect("pressed", editor, "set_main_screen_editor", [tb._get_tooltip()])
+		menu_split.connect("toggled", tb, "set_visible")
+		menu_container.add_child(tb)
+	
+	script_menu.add_child(menu_container)
+	script_menu.move_child(menu_container, 3)
+	
+	menu_split.connect("pressed", self, "_editor_script_selected")
+	menu_tab.connect("toggled", self, "_menu_tab_toggled")
+	
+	config_load()
+
+
 func config_save() -> void:
 	config.docked = dock.is_inside_tree()
-	config.split_mode = menu_split.is_pressed()
+	config.split_main = menu_split_group.get_pressed_button()._get_tooltip()
 	
 	var cfg := ConfigFile.new()
 	for item in config.keys():
@@ -178,7 +183,6 @@ func config_save() -> void:
 
 func config_load() -> void:
 	var cfg := ConfigFile.new()
-	
 	if cfg.load(PATH_CONFIG) != OK:
 		_switch_script_list_dock()
 		return
@@ -186,14 +190,18 @@ func config_load() -> void:
 	for item in config.keys():
 		config[item] = cfg.get_value(PATH_CONFIG, item, config.get(item))
 	
+	for button in menu_split_group.get_buttons():
+		if button._get_tooltip() == config.split_main:
+			button.pressed = true
+			break
+	
 	editor.get_editor_settings().set(PATH_STAY_IN_SCRIPT, config.stay_in_scirpt)
-	menu_split.set_pressed(config.split_mode)
 	if not script_list.is_visible() or config.docked:
 		_switch_script_list_dock()
 
 
 # ░░░░░░░░░░░░░░░░░░░░░░░░░░░ Title: NV Script Editor
 # ░░█▀█░█▀█░█░░░█░░░█░█░█▀▀░░ Act: Extend Script Editor Feature
-# ░░█░█░█▀█░░▀▄░░▀▄░▀▄▀░█▀▀░░ Cast[Editor, ScriptEditor]
-# ░░▀░▀░▀░▀░░░▀░░░▀░░▀░░▀▀▀░░ Writters[@illlustr,]
+# ░░█░█░█▀█░░▀▄░░▀▄░▀▄▀░█▀▀░░ Cast[ Editor, ScriptEditor ]
+# ░░▀░▀░▀░▀░░░▀░░░▀░░▀░░▀▀▀░░ Writers[ @illlustr, ]
 # ░ Projects ░░░░░░░░░░░░░░░░ https://github.com/naiiveprojects
